@@ -106,7 +106,7 @@ public class OIDCAdvancedConfigWrapper extends AbstractClientConfigWrapper {
     public String getRequestObjectRequired() {
         return getAttribute(OIDCConfigAttributes.REQUEST_OBJECT_REQUIRED);
     }
-    
+
     public void setRequestObjectRequired(String requestObjectRequired) {
         setAttribute(OIDCConfigAttributes.REQUEST_OBJECT_REQUIRED, requestObjectRequired);
     }

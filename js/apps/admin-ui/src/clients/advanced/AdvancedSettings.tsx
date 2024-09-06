@@ -143,6 +143,24 @@ export const AdvancedSettings = ({
               labelIcon={t("oAuthDPoPHelp")}
               stringify
             />
+          ) && (
+            <TokenLifespan
+              id="clientDpopClockSkew"
+              name={convertAttributeNameToForm(
+                "attributes.dpop.clock.skew",
+              )}
+              defaultValue={undefined}
+              units={["second", "minute"]}
+            />
+          ) && (
+            <TokenLifespan
+              id="clientDpopProofLifetime"
+              name={convertAttributeNameToForm(
+                "attributes.dpop.proof.lifetime",
+              )}
+              defaultValue={undefined}
+              units={["second", "minute", "hour"]}
+            />
           )}
           <FormGroup
             label={t("keyForCodeExchange")}

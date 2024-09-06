@@ -47,6 +47,8 @@ public final class OIDCConfigAttributes {
     public static final String USE_MTLS_HOK_TOKEN = "tls.client.certificate.bound.access.tokens";
 
     public static final String DPOP_BOUND_ACCESS_TOKENS = "dpop.bound.access.tokens";
+    public static final String DPOP_CLOCK_SKEW = "dpop.clock.skew";
+    public static final String DPOP_PROOF_LIFETIME = "dpop.proof.lifetime";
 
     public static final String ID_TOKEN_SIGNED_RESPONSE_ALG = "id.token.signed.response.alg";
 
@@ -68,7 +70,7 @@ public final class OIDCConfigAttributes {
     public static final String BACKCHANNEL_LOGOUT_URL = "backchannel.logout.url";
 
     public static final String BACKCHANNEL_LOGOUT_SESSION_REQUIRED = "backchannel.logout.session.required";
-    
+
     public static final String BACKCHANNEL_LOGOUT_REVOKE_OFFLINE_TOKENS = "backchannel.logout.revoke.offline.tokens";
 
     public static final String USE_REFRESH_TOKEN_FOR_CLIENT_CREDENTIALS_GRANT = "client_credentials.use_refresh_token";

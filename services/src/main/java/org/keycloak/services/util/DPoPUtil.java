@@ -34,6 +34,7 @@ import jakarta.ws.rs.core.UriInfo;
 
 import org.apache.commons.codec.binary.Hex;
 
+import org.jboss.logging.Logger;
 import org.keycloak.OAuth2Constants;
 import org.keycloak.OAuthErrorException;
 import org.keycloak.TokenVerifier;
@@ -54,6 +55,7 @@ import org.keycloak.jose.jws.JWSHeader;
 import org.keycloak.jose.jws.crypto.HashUtils;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.ClientSessionContext;
+import org.keycloak.models.Constants;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ProtocolMapperModel;
 import org.keycloak.models.SingleUseObjectProvider;
@@ -61,6 +63,7 @@ import org.keycloak.models.UserSessionModel;
 import org.keycloak.protocol.ProtocolMapper;
 import org.keycloak.protocol.ProtocolMapperUtils;
 import org.keycloak.protocol.oidc.OIDCAdvancedConfigWrapper;
+import org.keycloak.protocol.oidc.OIDCConfigAttributes;
 import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.protocol.oidc.mappers.AbstractOIDCProtocolMapper;
 import org.keycloak.protocol.oidc.mappers.OIDCAccessTokenMapper;
@@ -75,6 +78,7 @@ import org.keycloak.representations.dpop.DPoP;
 import org.keycloak.services.CorsErrorResponseException;
 import org.keycloak.services.cors.Cors;
 import org.keycloak.util.JWKSUtils;
+import org.keycloak.utils.CredentialHelper;
 
 import static org.keycloak.utils.StringUtil.isNotBlank;
 
@@ -83,13 +87,13 @@ import static org.keycloak.utils.StringUtil.isNotBlank;
  */
 public class DPoPUtil {
 
-    public static final int DEFAULT_PROOF_LIFETIME = 10;
-    public static final int DEFAULT_ALLOWED_CLOCK_SKEW = 2;
+    public static final int DEFAULT_PROOF_LIFETIME = 120;
+    public static final int DEFAULT_ALLOWED_CLOCK_SKEW = 30;
     public static final String DPOP_TOKEN_TYPE = "DPoP";
     public static final String DPOP_SCHEME = "DPoP";
     public final static String DPOP_SESSION_ATTRIBUTE = "dpop";
 
-    public static enum Mode {
+    public enum Mode {
         ENABLED,
         OPTIONAL,
         DISABLED
@@ -110,6 +114,8 @@ public class DPoPUtil {
         Algorithm.RS384,
         Algorithm.RS512
     ).collect(Collectors.toSet());
+
+    private static final Logger logger = Logger.getLogger(DPoPUtil.class);
 
     private static URI normalize(URI uri) {
         return UriBuilder.fromUri(uri).replaceQuery("").build();
@@ -352,8 +358,10 @@ public class DPoPUtil {
             long time = Time.currentTime();
             Long iat = t.getIat();
 
-            if (!(iat <= time + clockSkew && iat > time - lifetime)) {
-                throw new DPoPVerificationException(t, "DPoP proof is not active");
+            long low = time - clockSkew;
+            long high = iat + lifetime + clockSkew;
+            if (iat < low || high <= time) {
+                throw new DPoPVerificationException(t, "DPoP proof is not active, the IAT does not fall into defined boundaries");
             }
             return true;
         }
@@ -429,6 +437,43 @@ public class DPoPUtil {
 
         public Validator(KeycloakSession session) {
             this.session = session;
+            if (session.getContext() != null && session.getContext().getClient() != null) {
+                ClientModel clientModel = session.getContext().getClient();
+                initializeClockSkewForClient(clientModel);
+                initializeLifetimeForClient(clientModel);
+            }
+        }
+
+        private void initializeClockSkewForClient(ClientModel client)
+        {
+            clockSkew = DEFAULT_ALLOWED_CLOCK_SKEW;
+            String clockSkewAttr = client.getAttribute(OIDCConfigAttributes.DPOP_CLOCK_SKEW);
+            if (clockSkewAttr != null) {
+                try {
+                    clockSkew = Integer.parseInt(clockSkewAttr);
+                } catch (NumberFormatException ex) {
+                    logger.warnf(
+                            "Failed to parse number for DPoP Clock Skew (parsing value: %s). Using default value %d.",
+                            clockSkewAttr, clockSkew
+                    );
+                }
+            }
+        }
+
+        private void initializeLifetimeForClient(ClientModel client)
+        {
+            lifetime = DEFAULT_PROOF_LIFETIME;
+            String proofLifetimeAttr = client.getAttribute(OIDCConfigAttributes.DPOP_PROOF_LIFETIME);
+            if (proofLifetimeAttr != null) {
+                try {
+                    lifetime = Integer.parseInt(proofLifetimeAttr);
+                } catch (NumberFormatException ex) {
+                    logger.warnf(
+                            "Failed to parse number for DPoP Proof Lifetime (parsing value: %s). Using default value %d.",
+                            proofLifetimeAttr, lifetime
+                    );
+                }
+            }
         }
 
         public Validator request(HttpRequest request) {

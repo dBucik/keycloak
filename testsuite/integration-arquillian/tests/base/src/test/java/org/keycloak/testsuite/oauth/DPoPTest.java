@@ -391,7 +391,7 @@ public class DPoPTest extends AbstractTestRealmKeycloakTest {
 
     @Test
     public void testDPoPProofExpired() throws Exception {
-        testDPoPProofFailure(generateSignedDPoPProof(UUID.randomUUID().toString(), HttpMethod.POST.toString(), oauth.getAccessTokenUrl(), Long.valueOf(Time.currentTime() - 100000), Algorithm.ES256, jwsEcHeader, ecKeyPair.getPrivate()), "DPoP proof is not active");
+        testDPoPProofFailure(generateSignedDPoPProof(UUID.randomUUID().toString(), HttpMethod.POST.toString(), oauth.getAccessTokenUrl(), Long.valueOf(Time.currentTime() - 100000), Algorithm.ES256, jwsEcHeader, ecKeyPair.getPrivate()), "DPoP proof is not active, the IAT does not fall into defined boundaries");
     }
 
     @Test
